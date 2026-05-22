@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC Temp Monitor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            margin-bottom: 2rem;
+            color: #94a3b8;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .cards {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 2rem 3rem;
+            min-width: 220px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
+        }
+        .card:hover { transform: translateY(-4px); }
+        .card .label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+        .card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .card .value {
+            font-size: 3.5rem;
+            font-weight: 600;
+        }
+        .card .value .unit { font-size: 1.5rem; font-weight: 300; }
+        .status {
+            margin-top: 2rem;
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        .status .dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 1.5s infinite;
+        }
+        .dot.green { background: #22c55e; }
+        .dot.red { background: #ef4444; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .temp-low { color: #22c55e; }
+        .temp-mid { color: #facc15; }
+        .temp-high { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>System Monitor</h1>
+        <div class="cards">
+            <div class="card" id="cpu-card">
+                <div class="label">CPU</div>
+                <div class="icon">🖥️</div>
+                <div class="value" id="cpu-value">-- <span class="unit">°C</span></div>
+            </div>
+            <div class="card" id="gpu-card">
+                <div class="label">GPU</div>
+                <div class="icon">🎮</div>
+                <div class="value" id="gpu-value">-- <span class="unit">°C</span></div>
+            </div>
+        </div>
+        <div class="status">
+            <span class="dot green" id="status-dot"></span>
+            <span id="status-text">Waiting for data...</span>
+        </div>
+    </div>
+
+    <script>
+        function tempColor(temp) {
+            if (temp === null || temp === undefined) return '';
+            if (temp < 50) return 'temp-low';
+            if (temp < 75) return 'temp-mid';
+            return 'temp-high';
+        }
+
+        async function fetchTemps() {
+            const dot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            try {
+                const resp = await fetch('/api/temps');
+                const data = await resp.json();
+
+                const cpuEl = document.getElementById('cpu-value');
+                const gpuEl = document.getElementById('gpu-value');
+
+                if (data.cpu !== null) {
+                    cpuEl.innerHTML = `${data.cpu} <span class="unit">°C</span>`;
+                    cpuEl.className = 'value ' + tempColor(data.cpu);
+                } else {
+                    cpuEl.innerHTML = 'N/A <span class="unit">°C</span>';
+                    cpuEl.className = 'value';
+                }
+
+                if (data.gpu !== null) {
+                    gpuEl.innerHTML = `${data.gpu} <span class="unit">°C</span>`;
+                    gpuEl.className = 'value ' + tempColor(data.gpu);
+                } else {
+                    gpuEl.innerHTML = 'N/A <span class="unit">°C</span>';
+                    gpuEl.className = 'value';
+                }
+
+                dot.className = 'dot green';
+                statusText.textContent = 'Updating...';
+            } catch (err) {
+                dot.className = 'dot red';
+                statusText.textContent = 'Connection error';
+            }
+        }
+
+        fetchTemps();
+        setInterval(fetchTemps, 2000);
+    </script>
+</body>
+</html>
